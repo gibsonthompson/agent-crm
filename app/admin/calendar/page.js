@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminAuth } from '../layout'
+import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const STATUS_COLORS = {
   showing_scheduled: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' },
@@ -19,6 +20,14 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const EVENT_TYPES = ['Showing', 'Open House', 'Listing Appointment', 'Buyer Consultation', 'Closing', 'Inspection', 'Appraisal', 'Final Walkthrough', 'Other']
 const TIME_OPTIONS = ['8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM']
 
+const HELP_SECTIONS = [
+  { title: 'What shows up here?', body: 'Any contact with a scheduled date appears on the calendar. This includes showings, open houses, listing appointments, closings, inspections, and any other event you add.' },
+  { title: 'Month vs Week view', body: 'Month view shows the full month with colored dots on days that have events. Tap a day to see details below. Week view shows a vertical list starting with today.' },
+  { title: 'Adding events', body: 'Tap the + Add button to create a new event. Pick the event type, client name, date and time. If none of the event types fit, select "Other" and type a custom description.' },
+  { title: 'Tap an event', body: 'Tap any event to go to that contact\'s detail page where you can call, text, update their status, or reschedule.' },
+  { title: 'Color-coded status', body: 'Each event shows a colored badge matching its pipeline status — purple for showings, green for under contract, etc.' },
+]
+
 export default function CalendarPage() {
   const { user } = useAdminAuth()
   const isAdmin = user?.role === 'admin'
@@ -30,7 +39,8 @@ export default function CalendarPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
-  const [newEvent, setNewEvent] = useState({ name: '', phone: '', service_type: '', scheduled_date: '', scheduled_time: '', status: 'showing_scheduled', address: '', notes: '' })
+  const [showHelp, setShowHelp] = useState(false)
+  const [newEvent, setNewEvent] = useState({ name: '', phone: '', service_type: '', custom_service: '', scheduled_date: '', scheduled_time: '', status: 'showing_scheduled', address: '', notes: '' })
 
   useEffect(() => { if (user) fetchSubmissions() }, [user])
 
@@ -40,15 +50,16 @@ export default function CalendarPage() {
 
   const openAddModal = (date) => {
     const dateStr = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-    setNewEvent({ name: '', phone: '', service_type: '', scheduled_date: dateStr, scheduled_time: '', status: 'showing_scheduled', address: '', notes: '' })
+    setNewEvent({ name: '', phone: '', service_type: '', custom_service: '', scheduled_date: dateStr, scheduled_time: '', status: 'showing_scheduled', address: '', notes: '' })
     setShowAddModal(true)
   }
 
   const handleAddEvent = async () => {
-    if (!newEvent.name || !newEvent.service_type || !newEvent.scheduled_date) return
+    const serviceType = newEvent.service_type === 'Other' ? newEvent.custom_service : newEvent.service_type
+    if (!newEvent.name || !serviceType || !newEvent.scheduled_date) return
     setSaving(true)
     try {
-      const r = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newEvent.name, phone: newEvent.phone || '0000000000', email: 'noemail@placeholder.com', service_type: newEvent.service_type, message: newEvent.notes || null, source: 'calendar' }) })
+      const r = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newEvent.name, phone: newEvent.phone || '0000000000', email: 'noemail@placeholder.com', service_type: serviceType, message: newEvent.notes || null, source: 'calendar' }) })
       const res = await r.json()
       if (res.data) await fetch('/api/contact', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: res.data.id, status: newEvent.status, scheduled_date: newEvent.scheduled_date, scheduled_time: newEvent.scheduled_time || null, address: newEvent.address || null }) })
       setShowAddModal(false); setSuccessMsg('Event added'); fetchSubmissions(); setTimeout(() => setSuccessMsg(''), 2000)
@@ -66,6 +77,7 @@ export default function CalendarPage() {
 
   const days = view === 'month' ? getMonthDays() : getWeekDays()
   const selectedEvents = selectedDate ? getEventsForDate(selectedDate) : []
+  const serviceValid = newEvent.service_type === 'Other' ? newEvent.custom_service.trim() : newEvent.service_type
 
   if (loading) return <div className="flex items-center justify-center min-h-[50vh]"><div className="w-10 h-10 border-4 border-[#1a2e44] border-t-transparent rounded-full animate-spin" /></div>
 
@@ -74,6 +86,7 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div><h2 className="text-lg sm:text-2xl font-bold text-[#1a2e44]">Calendar</h2><p className="text-gray-500 text-xs sm:text-sm">{submissions.length} scheduled</p></div>
         <div className="flex items-center gap-2">
+          <HelpButton onClick={() => setShowHelp(true)} />
           {isAdmin && <button onClick={() => openAddModal(selectedDate || new Date())} className="px-3 py-1.5 text-xs font-medium text-white bg-[#1a2e44] rounded-lg hover:bg-[#0f1d2d] flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Add</button>}
           <button onClick={goToToday} className="px-3 py-1.5 text-xs font-medium text-[#1a2e44] bg-[#1a2e44]/10 rounded-lg">Today</button>
           <div className="flex bg-gray-100 rounded-lg p-0.5"><button onClick={() => setView('month')} className={'px-3 py-1.5 text-xs font-medium rounded-md ' + (view === 'month' ? 'bg-white text-[#1a2e44] shadow-sm' : 'text-gray-500')}>Month</button><button onClick={() => setView('week')} className={'px-3 py-1.5 text-xs font-medium rounded-md ' + (view === 'week' ? 'bg-white text-[#1a2e44] shadow-sm' : 'text-gray-500')}>Week</button></div>
@@ -92,34 +105,23 @@ export default function CalendarPage() {
       {view === 'week' && (
         <div className="sm:hidden space-y-3 mb-4">
           {(() => {
-            const weekDays = getWeekDays()
-            const todayIndex = weekDays.findIndex(d => isToday(d.date))
+            const weekDays = getWeekDays(); const todayIndex = weekDays.findIndex(d => isToday(d.date))
             const reordered = todayIndex >= 0 ? [...weekDays.slice(todayIndex), ...weekDays.slice(0, todayIndex)] : weekDays
             return reordered.map((day, i) => {
-              const events = getEventsForDate(day.date); const today = isToday(day.date)
-              const isPast = day.date < new Date(new Date().setHours(0,0,0,0)) && !today
+              const events = getEventsForDate(day.date); const today = isToday(day.date); const isPast = day.date < new Date(new Date().setHours(0,0,0,0)) && !today
               return (
                 <div key={i} className={'bg-white rounded-xl shadow-sm overflow-hidden ' + (isPast ? 'opacity-60' : '')}>
                   <div className={'px-4 py-3 flex items-center justify-between border-l-4 ' + (today ? 'border-l-[#1a2e44] bg-[#1a2e44]/5' : 'border-l-gray-200')}>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center w-10"><p className={'text-[10px] font-semibold uppercase ' + (today ? 'text-[#1a2e44]' : 'text-gray-400')}>{DAYS_OF_WEEK[day.date.getDay()]}</p><p className={'text-xl font-bold ' + (today ? 'text-[#1a2e44]' : 'text-gray-800')}>{day.date.getDate()}</p></div>
-                      {today && <span className="text-[10px] font-medium text-white bg-[#1a2e44] px-2 py-0.5 rounded-full">Today</span>}
-                    </div>
+                    <div className="flex items-center gap-3"><div className="text-center w-10"><p className={'text-[10px] font-semibold uppercase ' + (today ? 'text-[#1a2e44]' : 'text-gray-400')}>{DAYS_OF_WEEK[day.date.getDay()]}</p><p className={'text-xl font-bold ' + (today ? 'text-[#1a2e44]' : 'text-gray-800')}>{day.date.getDate()}</p></div>{today && <span className="text-[10px] font-medium text-white bg-[#1a2e44] px-2 py-0.5 rounded-full">Today</span>}</div>
                     {events.length > 0 && <span className="text-xs font-medium text-gray-400">{events.length}</span>}
                   </div>
                   {events.length === 0 ? <div className="px-4 py-3"><p className="text-xs text-gray-300">Nothing scheduled</p></div> : (
-                    <div className="divide-y divide-gray-100">
-                      {events.map((event) => { const colors = STATUS_COLORS[event.status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' }; return (
-                        <Link key={event.id} href={'/admin/contacts/' + event.id} className="flex items-start gap-3 px-4 py-3 active:bg-gray-50">
-                          <div className={'w-1 self-stretch rounded-full flex-shrink-0 ' + colors.dot} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-900 text-sm truncate">{event.name}</p><span className={'inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ' + colors.bg + ' ' + colors.text}>{STATUS_LABELS[event.status] || event.status}</span></div>
-                            <p className="text-xs text-gray-500">{event.service_type}</p>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">{event.scheduled_time && <span>{event.scheduled_time}</span>}{event.address && <span>{event.address}</span>}</div>
-                          </div>
-                        </Link>
-                      ) })}
-                    </div>
+                    <div className="divide-y divide-gray-100">{events.map((event) => { const colors = STATUS_COLORS[event.status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' }; return (
+                      <Link key={event.id} href={'/admin/contacts/' + event.id} className="flex items-start gap-3 px-4 py-3 active:bg-gray-50">
+                        <div className={'w-1 self-stretch rounded-full flex-shrink-0 ' + colors.dot} />
+                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-900 text-sm truncate">{event.name}</p><span className={'inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ' + colors.bg + ' ' + colors.text}>{STATUS_LABELS[event.status] || event.status}</span></div><p className="text-xs text-gray-500">{event.service_type}</p><div className="flex items-center gap-3 mt-1 text-xs text-gray-400">{event.scheduled_time && <span>{event.scheduled_time}</span>}{event.address && <span>{event.address}</span>}</div></div>
+                      </Link>
+                    ) })}</div>
                   )}
                 </div>
               )
@@ -154,26 +156,19 @@ export default function CalendarPage() {
             {isAdmin && <button onClick={() => openAddModal(selectedDate)} className="text-xs text-[#1a2e44] font-medium flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Add</button>}
           </div>
           {selectedEvents.length === 0 ? <div className="p-8 text-center"><p className="text-xs text-gray-400">Nothing scheduled</p></div> : (
-            <div className="divide-y divide-gray-100">
-              {selectedEvents.map((event) => { const colors = STATUS_COLORS[event.status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' }; return (
-                <Link key={event.id} href={'/admin/contacts/' + event.id} className="flex items-start gap-3 p-4 sm:px-6 hover:bg-gray-50">
-                  <div className={'w-1 self-stretch rounded-full flex-shrink-0 ' + colors.dot} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-900 text-sm truncate">{event.name}</p><span className={'inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ' + colors.bg + ' ' + colors.text}>{STATUS_LABELS[event.status] || event.status}</span></div>
-                    <p className="text-xs text-gray-500">{event.service_type}</p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">{event.scheduled_time && <span>{event.scheduled_time}</span>}{formatPhone(event.phone) && <span>{formatPhone(event.phone)}</span>}</div>
-                    {event.address && <p className="text-xs text-gray-400 mt-0.5">{event.address}</p>}
-                  </div>
-                </Link>
-              ) })}
-            </div>
+            <div className="divide-y divide-gray-100">{selectedEvents.map((event) => { const colors = STATUS_COLORS[event.status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' }; return (
+              <Link key={event.id} href={'/admin/contacts/' + event.id} className="flex items-start gap-3 p-4 sm:px-6 hover:bg-gray-50">
+                <div className={'w-1 self-stretch rounded-full flex-shrink-0 ' + colors.dot} />
+                <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-0.5"><p className="font-semibold text-gray-900 text-sm truncate">{event.name}</p><span className={'inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ' + colors.bg + ' ' + colors.text}>{STATUS_LABELS[event.status] || event.status}</span></div><p className="text-xs text-gray-500">{event.service_type}</p><div className="flex items-center gap-3 mt-1 text-xs text-gray-400">{event.scheduled_time && <span>{event.scheduled_time}</span>}{formatPhone(event.phone) && <span>{formatPhone(event.phone)}</span>}</div>{event.address && <p className="text-xs text-gray-400 mt-0.5">{event.address}</p>}</div>
+              </Link>
+            ) })}</div>
           )}
         </div>
       )}
 
       <div className="mt-4 flex flex-wrap gap-3 px-1">{Object.entries(STATUS_LABELS).map(([key, label]) => { const c = STATUS_COLORS[key]; if (!c) return null; return <div key={key} className="flex items-center gap-1.5"><div className={'w-2 h-2 rounded-full ' + c.dot} /><span className="text-xs text-gray-500">{label}</span></div> })}</div>
 
-      {/* Add Modal */}
+      {/* Add Modal — with Other text box */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowAddModal(false)}>
           <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -186,16 +181,24 @@ export default function CalendarPage() {
                 <div><label className="block text-xs text-gray-500 mb-1">Date *</label><input type="date" value={newEvent.scheduled_date} onChange={(e) => setNewEvent(p => ({ ...p, scheduled_date: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
                 <div><label className="block text-xs text-gray-500 mb-1">Time</label><select value={newEvent.scheduled_time} onChange={(e) => setNewEvent(p => ({ ...p, scheduled_time: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#1a2e44] outline-none bg-white"><option value="">Select...</option>{TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
               </div>
-              <div><label className="block text-xs text-gray-500 mb-1">Event Type *</label><select value={newEvent.service_type} onChange={(e) => setNewEvent(p => ({ ...p, service_type: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none bg-white"><option value="">Select...</option>{EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Event Type *</label>
+                <select value={newEvent.service_type} onChange={(e) => setNewEvent(p => ({ ...p, service_type: e.target.value, custom_service: '' }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none bg-white"><option value="">Select...</option>{EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                {newEvent.service_type === 'Other' && (
+                  <input type="text" value={newEvent.custom_service} onChange={(e) => setNewEvent(p => ({ ...p, custom_service: e.target.value }))} placeholder="Describe the event type..." style={{ fontSize: '16px' }} className="w-full mt-2 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" />
+                )}
+              </div>
               <div><label className="block text-xs text-gray-500 mb-1">Client Name *</label><input type="text" value={newEvent.name} onChange={(e) => setNewEvent(p => ({ ...p, name: e.target.value }))} placeholder="Client name" style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
               <div><label className="block text-xs text-gray-500 mb-1">Phone</label><input type="tel" value={newEvent.phone} onChange={(e) => setNewEvent(p => ({ ...p, phone: e.target.value }))} placeholder="(770) 000-0000" style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
               <div><label className="block text-xs text-gray-500 mb-1">Property Address</label><input type="text" value={newEvent.address} onChange={(e) => setNewEvent(p => ({ ...p, address: e.target.value }))} placeholder="123 Main St" style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
               <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={newEvent.notes} onChange={(e) => setNewEvent(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Optional..." style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none resize-none" /></div>
-              <button onClick={handleAddEvent} disabled={saving || !newEvent.name || !newEvent.service_type || !newEvent.scheduled_date} className="w-full mt-2 py-3 bg-[#1a2e44] text-white rounded-xl font-semibold hover:bg-[#0f1d2d] disabled:opacity-50">{saving ? 'Adding...' : 'Add to Calendar'}</button>
+              <button onClick={handleAddEvent} disabled={saving || !newEvent.name || !serviceValid || !newEvent.scheduled_date} className="w-full mt-2 py-3 bg-[#1a2e44] text-white rounded-xl font-semibold hover:bg-[#0f1d2d] disabled:opacity-50">{saving ? 'Adding...' : 'Add to Calendar'}</button>
             </div>
           </div>
         </div>
       )}
+
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Calendar Help" sections={HELP_SECTIONS} />
     </div>
   )
 }

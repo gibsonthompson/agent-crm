@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminAuth } from '../layout'
+import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const COLUMNS = [
   { key: 'new', label: 'New Lead', color: 'border-blue-400', bg: 'bg-blue-50', badge: 'bg-blue-100 text-blue-700', help: 'Fresh leads from your website, Zillow, or manual entry. Call them ASAP.' },
@@ -15,8 +16,12 @@ const COLUMNS = [
 ]
 const CLOSE_REASONS = ['Found another agent', 'Not ready to buy/sell', 'No response', 'Price expectations', 'Relocated', 'Financing issues', 'Other']
 
+
+const HELP_SECTIONS = [{"title": "The basics", "body": "Every lead moves left to right through your pipeline. New leads on the left, closed deals on the right."}, {"title": "How to move a lead", "body": "On a computer, drag and drop cards between columns. On phone, tap a card and pick the new stage."}, {"title": "Pipeline stages", "body": "New Lead \u2192 Contacted \u2192 Showing \u2192 Offer Sent \u2192 Under Contract \u2192 Closed \u2192 Lost. Each stage has a different color."}, {"title": "Colored dots", "body": "Green = less than 1 hour old. Yellow = 1-24 hours. Red = over 24 hours. Only on New and Contacted leads."}, {"title": "Under Contract", "body": "When a lead goes under contract, create a Transaction on the Transactions page to track milestones and commission."}]
+
 export default function PipelinePage() {
   const { user } = useAdminAuth()
+  const [showHelp, setShowHelp] = useState(false)
   const [contacts, setContacts] = useState([])
   const [loading, setLoading] = useState(true)
   const [draggingId, setDraggingId] = useState(null)
@@ -74,7 +79,8 @@ export default function PipelinePage() {
         <Link href="/admin/contacts" className="px-3 py-1.5 text-xs font-medium text-[#1a2e44] bg-[#1a2e44]/10 rounded-lg hover:bg-[#1a2e44]/20">List View</Link>
       </div>
 
-      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
+      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2">
+          <HelpButton onClick={() => setShowHelp(true)} /><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
 
       {/* Desktop */}
       <div className="hidden sm:grid grid-cols-7 gap-2">
@@ -132,6 +138,8 @@ export default function PipelinePage() {
 
       {/* Close Modal */}
       {showCloseModal && <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCloseModal(null)}><div className="bg-white rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}><h3 className="text-lg font-bold text-gray-900 mb-4">Why was this lead lost?</h3><div className="space-y-2 mb-6">{CLOSE_REASONS.map((r) => <button key={r} onClick={() => setCloseReason(r)} className={'w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ' + (closeReason === r ? 'border-red-300 bg-red-50 text-red-700 font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50')}>{r}</button>)}</div><div className="flex gap-3"><button onClick={() => setShowCloseModal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg">Cancel</button><button onClick={handleCloseLost} disabled={!closeReason} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 rounded-lg disabled:opacity-50">Mark as Lost</button></div></div></div>}
+
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Pipeline Help" sections={HELP_SECTIONS} />
     </div>
   )
 }

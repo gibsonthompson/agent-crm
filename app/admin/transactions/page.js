@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAdminAuth } from '../layout'
+import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const TRANSACTION_SIDES = ['Buyer', 'Seller', 'Dual']
 const TRANSACTION_STATUSES = ['pending', 'closed', 'fell_through']
@@ -21,9 +22,13 @@ const MILESTONE_TEMPLATES = [
   { label: 'Closing Day', offset: 30, critical: true },
 ]
 
+
+const HELP_SECTIONS = [{"title": "What is this page?", "body": "Your deal tracker. Every active and closed transaction with commission calculations and milestone checklists."}, {"title": "Adding a deal", "body": "Tap New Deal, enter the property, client, sale price, and commission details. Set contract and closing dates to auto-generate milestones."}, {"title": "Milestones", "body": "Setting a contract date auto-generates deadlines: earnest money, inspection, appraisal, financing, title, walkthrough, closing. Check them off as completed."}, {"title": "Commission calculator", "body": "Sale Price \u00d7 Commission% \u2212 Broker Split% \u2212 Referral Fee = your Net GCI. Calculated automatically."}, {"title": "Summary cards", "body": "Top cards show Closed GCI, Pending GCI, Total Volume, and Closed Deals count."}]
+
 export default function TransactionsPage() {
   const { user } = useAdminAuth()
   const isAdmin = user?.role === 'admin'
+  const [showHelp, setShowHelp] = useState(false)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
@@ -150,7 +155,8 @@ export default function TransactionsPage() {
         {isAdmin && !editing && <button onClick={handleNew} className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-medium rounded-xl hover:bg-[#0f1d2d]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>New Deal</button>}
       </div>
 
-      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
+      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2">
+          <HelpButton onClick={() => setShowHelp(true)} /><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
 
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -298,6 +304,8 @@ export default function TransactionsPage() {
           )
         })}
       </div>
+
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Transactions Help" sections={HELP_SECTIONS} />
     </div>
   )
 }

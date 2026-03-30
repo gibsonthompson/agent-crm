@@ -3,12 +3,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminAuth } from '../layout'
+import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const RELATIONSHIP_TYPES = ['Past Client', 'Family', 'Friend', 'Colleague', 'Vendor', 'Lender', 'Title Rep', 'Inspector', 'Other']
 const TOUCH_METHODS = ['Call', 'Text', 'Email', 'Coffee/Lunch', 'Gift', 'Card', 'Social Media', 'Event']
 
+
+const HELP_SECTIONS = [{"title": "What is SOI?", "body": "Sphere of Influence \u2014 past clients, family, friends, vendors, lenders. Your #1 source of repeat business and referrals."}, {"title": "Touch tracking", "body": "Log every interaction \u2014 call, text, email, coffee, gift, card \u2014 with the Log Touch button. Tracks how recently you contacted each person."}, {"title": "Overdue contacts", "body": "Anyone not touched in 90+ days shows as Overdue with a red dot. Goal: touch everyone at least once per quarter."}, {"title": "Birthdays & Anniversaries", "body": "Alert cards show upcoming birthdays and close-date anniversaries in the next 14 days. Great excuse to reach out."}, {"title": "Adding people", "body": "Tap Add Person to add someone. Set their relationship type, close date (for homeiversary tracking), and birthday."}]
+
 export default function SOIPage() {
   const { user } = useAdminAuth()
+  const [showHelp, setShowHelp] = useState(false)
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -118,7 +123,8 @@ export default function SOIPage() {
         </button>
       </div>
 
-      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
+      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2">
+          <HelpButton onClick={() => setShowHelp(true)} /><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
 
       {/* Alert Cards */}
       <div className="grid grid-cols-3 gap-3 mb-4">
@@ -232,6 +238,8 @@ export default function SOIPage() {
           </div>
         </div>
       )}
+
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="SOI Help" sections={HELP_SECTIONS} />
     </div>
   )
 }

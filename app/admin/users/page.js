@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAdminAuth } from '../layout'
+import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const PERMISSION_LABELS = [
   { key: 'dashboard', label: 'Dashboard', desc: 'View the main dashboard' },
@@ -14,8 +15,12 @@ const PERMISSION_LABELS = [
   { key: 'delete_contacts', label: 'Delete Contacts', desc: 'Permanently delete contacts' },
 ]
 
+
+const HELP_SECTIONS = [{"title": "Admins vs Agents", "body": "Admins have full access to everything including this page. Agents only see contacts assigned to them and enabled pages."}, {"title": "Permissions", "body": "Toggle switches control what each agent can access \u2014 Contacts, Pipeline, Calendar, Templates, SMS, Email, etc."}, {"title": "Data scoping", "body": "Agents only see contacts assigned to them. Use the Assigned To dropdown on a contact detail page. Admins see everything."}, {"title": "Passwords", "body": "You set the password when creating a user. To reset it, edit their profile and type a new one."}, {"title": "Deactivating vs Deleting", "body": "Deactivate to temporarily remove access (history preserved). Delete is permanent."}]
+
 export default function UsersPage() {
   const { hasPermission, user: currentUser } = useAdminAuth()
+  const [showHelp, setShowHelp] = useState(false)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
@@ -60,7 +65,8 @@ export default function UsersPage() {
         {!editing && <button onClick={handleNew} className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-medium rounded-xl hover:bg-[#0f1d2d]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Add</button>}
       </div>
 
-      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
+      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2">
+          <HelpButton onClick={() => setShowHelp(true)} /><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
 
       {editing && (
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 border-2 border-[#1a2e44]/20">
@@ -118,6 +124,8 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Users Help" sections={HELP_SECTIONS} />
     </div>
   )
 }

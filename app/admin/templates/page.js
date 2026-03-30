@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const CATEGORY_ORDER = [
   { key: 'new_lead', label: 'New Lead', desc: 'First contact with a new lead' },
@@ -13,7 +14,11 @@ const CATEGORY_ORDER = [
   { key: 'general', label: 'General', desc: 'Other templates' },
 ]
 
+
+const HELP_SECTIONS = [{"title": "What are templates?", "body": "Pre-written SMS and email messages. Pick a template, it fills in the client's name, and you send it."}, {"title": "SMS vs Email", "body": "SMS are short texts. Email templates have subject lines and longer bodies. Filter by type at the top."}, {"title": "Pipeline stages", "body": "Templates are organized by stage: New Lead, Showing, Offer, Under Contract, Closing, Post-Close."}, {"title": "Variables", "body": "Use {name}, {first_name}, or {property_address} and they get replaced with real client data when sending."}, {"title": "How to send", "body": "Go to any contact's detail page, tap Text or Email, and pick from your templates."}]
+
 export default function TemplatesPage() {
+  const [showHelp, setShowHelp] = useState(false)
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
@@ -62,7 +67,8 @@ export default function TemplatesPage() {
         {!editing && <button onClick={handleNew} className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-medium rounded-xl hover:bg-[#0f1d2d]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>New</button>}
       </div>
 
-      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
+      {successMsg && <div className="mb-4 rounded-xl p-3 text-sm bg-green-50 border border-green-200 text-green-700 flex items-center gap-2">
+          <HelpButton onClick={() => setShowHelp(true)} /><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>{successMsg}</div>}
 
       {!editing && <div className="flex gap-2 mb-3">{[{ v: 'all', l: 'All' }, { v: 'sms', l: 'SMS' }, { v: 'email', l: 'Email' }].map(f => <button key={f.v} onClick={() => setTypeFilter(f.v)} className={'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ' + (typeFilter === f.v ? 'bg-[#1a2e44] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>{f.l}<span className={'ml-1.5 ' + (typeFilter === f.v ? 'text-white/70' : 'text-gray-400')}>{f.v === 'all' ? templates.length : templates.filter(t => (t.type || 'email') === f.v).length}</span></button>)}</div>}
 
@@ -122,6 +128,8 @@ export default function TemplatesPage() {
           ))}
         </div>
       )}
+
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Templates Help" sections={HELP_SECTIONS} />
     </div>
   )
 }
