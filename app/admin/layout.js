@@ -5,16 +5,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const DEFAULT_USER = { id: 'owner', name: 'Agent', role: 'admin', permissions: {} }
-
 const AuthContext = createContext({ isAuthenticated: true, user: DEFAULT_USER, hasPermission: () => true })
 export const useAdminAuth = () => useContext(AuthContext)
 
-const BRAND = {
-  name: 'Agent CRM',
-  tagline: 'Real Estate CRM',
-  primary: '#1a2e44',
-  accent: '#e8963e',
-}
+const BRAND = { name: 'Agent CRM', primary: '#1a2e44', accent: '#e8963e' }
 
 export default function AdminLayout({ children }) {
   const user = DEFAULT_USER
@@ -22,12 +16,7 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
 
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="viewport"]')
-    if (meta) meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover')
-    else { const m = document.createElement('meta'); m.name = 'viewport'; m.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; document.head.appendChild(m) }
-  }, [])
-
+  useEffect(() => { const meta = document.querySelector('meta[name="viewport"]'); if (meta) meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'); else { const m = document.createElement('meta'); m.name = 'viewport'; m.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; document.head.appendChild(m) } }, [])
   useEffect(() => { setSidebarOpen(false) }, [pathname])
 
   const allNavItems = [
@@ -39,6 +28,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/soi', label: 'SOI', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
     { href: '/admin/templates', label: 'Templates', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
     { href: '/admin/users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+    { href: '/admin/settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
   ]
 
   const isActive = (href) => href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)

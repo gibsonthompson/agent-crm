@@ -12,11 +12,13 @@ export default function AdminDashboard() {
   const [contacts, setContacts] = useState([])
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [notes, setNotes] = useState([])
+  const [settings, setSettings] = useState({})
+  const [showAddNote, setShowAddNote] = useState(false)
+  const [newNoteText, setNewNoteText] = useState('')
+  const [editingNote, setEditingNote] = useState(null)
   const [showHelp, setShowHelp] = useState(false)
-  const [personalNotes, setPersonalNotes] = useState('')
-  const [notesSaving, setNotesSaving] = useState(false)
-  const [notesSaved, setNotesSaved] = useState(false)
-
+  
   useEffect(() => { if (user) fetchData() }, [user])
 
   // Load personal notes from localStorage
@@ -27,12 +29,16 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       const params = user.role === 'member' ? `?user_id=${user.id}&user_role=member` : ''
-      const [cRes, tRes] = await Promise.all([
+      const [cRes, tRes, nRes, sRes] = await Promise.all([
         fetch('/api/contact' + params).then(r => r.json()),
-        fetch('/api/admin/transactions').then(r => r.json()).catch(() => ({ transactions: [] }))
+        fetch('/api/admin/transactions').then(r => r.json()).catch(() => ({ transactions: [] })),
+        fetch('/api/admin/notes').then(r => r.json()).catch(() => ({ notes: [] })),
+        fetch('/api/admin/settings').then(r => r.json()).catch(() => ({ settings: {} })),
       ])
       if (cRes.data) setContacts(cRes.data)
       if (tRes.transactions) setTransactions(tRes.transactions)
+      if (nRes.notes) setNotes(nRes.notes)
+      if (sRes.settings) setSettings(sRes.settings)
     } catch (e) {} finally { setLoading(false) }
   }
 
@@ -41,6 +47,11 @@ export default function AdminDashboard() {
     try { localStorage.setItem('agent_crm_personal_notes', personalNotes); setNotesSaved(true); setTimeout(() => setNotesSaved(false), 2000) } catch (e) {}
     finally { setNotesSaving(false) }
   }
+
+  const getSetting = (key, fb) => parseFloat(settings[key]?.value) || fb
+  const handleAddNote = async () => { if (!newNoteText.trim()) return; try { const r = await fetch('/api/admin/notes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ text:newNoteText, color:'yellow' }) }); const d = await r.json(); if (d.note) setNotes(prev => [d.note, ...prev]) } catch(e) {}; setNewNoteText(''); setShowAddNote(false) }
+  const handleDeleteNote = async (id) => { setNotes(prev => prev.filter(n => n.id !== id)); try { await fetch('/api/admin/notes', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id }) }) } catch(e) {} }
+  const handleUpdateNote = async (id, text) => { setNotes(prev => prev.map(n => n.id === id ? {...n, text} : n)); setEditingNote(null); try { await fetch('/api/admin/notes', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id, text }) }) } catch(e) {} }
 
   const todayStr = new Date().toISOString().split('T')[0]
   const now = new Date()
@@ -56,8 +67,8 @@ export default function AdminDashboard() {
   const needsAttention = contacts.filter(s => {
     if (['closed', 'lost'].includes(s.status)) return false
     if (s.next_follow_up) { const f = new Date(s.next_follow_up); f.setHours(0,0,0,0); const t = new Date(); t.setHours(0,0,0,0); if (f <= t) return true }
-    if (s.status === 'new' && (Date.now() - new Date(s.created_at)) / 36e5 > 1) return true
-    if (s.status === 'offer_submitted' && (Date.now() - new Date(s.updated_at)) / 864e5 > 2) return true
+    if (s.status === 'new' && (Date.now() - new Date(s.created_at)) / 36e5 > getSetting('new_lead_alert_hours', 1)) return true
+    if (s.status === 'offer_submitted' && (Date.now() - new Date(s.updated_at)) / 864e5 > getSetting('offer_followup_days', 2)) return true
     return false
   }).sort((a, b) => { const aScore = a.status === 'new' ? 0 : a.next_follow_up ? 1 : 2; const bScore = b.status === 'new' ? 0 : b.next_follow_up ? 1 : 2; return aScore - bScore })
 
@@ -107,15 +118,21 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl p-3 shadow-sm text-center"><p className="text-lg sm:text-xl font-bold text-[#e8963e]">{fmtMoney(pendingRevenue)}</p><p className="text-[10px] text-gray-500">Pending GCI</p></div>
       </div>
 
-      {/* Personal Notes */}
+      {/* Quick Notes */}
       <div className="bg-white rounded-xl shadow-sm mb-6 overflow-hidden">
         <div className="px-4 sm:px-6 py-3 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2"><svg className="w-4 h-4 text-[#e8963e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg><h3 className="text-sm sm:text-base font-semibold text-gray-800">Quick Notes</h3></div>
-          <button onClick={saveNotes} disabled={notesSaving} className={'text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ' + (notesSaved ? 'bg-green-100 text-green-700' : 'bg-[#1a2e44]/10 text-[#1a2e44] hover:bg-[#1a2e44]/20')}>{notesSaved ? 'Saved!' : notesSaving ? 'Saving...' : 'Save'}</button>
+          <div className="flex items-center gap-2"><svg className="w-4 h-4 text-[#e8963e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg><h3 className="text-sm font-semibold text-gray-800">Quick Notes</h3></div>
+          <button onClick={() => setShowAddNote(!showAddNote)} className="text-xs font-medium text-[#1a2e44] bg-[#1a2e44]/10 px-3 py-1.5 rounded-lg hover:bg-[#1a2e44]/20 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Add</button>
         </div>
-        <div className="p-4 sm:px-6">
-          <textarea value={personalNotes} onChange={(e) => setPersonalNotes(e.target.value)} placeholder="Jot down anything — to-do items, reminders, ideas, call notes..." rows={4} style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none resize-none" />
-        </div>
+        {showAddNote && <div className="px-4 sm:px-6 py-3 border-b border-gray-100 bg-gray-50"><div className="flex gap-2"><input type="text" value={newNoteText} onChange={(e) => setNewNoteText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} placeholder="Type a note..." style={{ fontSize: '16px' }} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" autoFocus /><button onClick={handleAddNote} disabled={!newNoteText.trim()} className="px-4 py-2 bg-[#1a2e44] text-white text-sm font-medium rounded-lg disabled:opacity-50">Add</button></div></div>}
+        {notes.length === 0 && !showAddNote ? <div className="p-6 text-center"><p className="text-xs text-gray-400">No notes yet</p></div> : (
+          <div className="p-3 sm:px-5 flex flex-wrap gap-2">{notes.map(n => (
+            <div key={n.id} className="relative group rounded-lg border px-3 py-2 min-w-[120px] max-w-[250px] bg-amber-50 border-amber-200">
+              {editingNote === n.id ? <input type="text" defaultValue={n.text} autoFocus onBlur={(e) => handleUpdateNote(n.id, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateNote(n.id, e.target.value) }} className="w-full bg-transparent text-sm outline-none text-amber-900" /> : <p onClick={() => setEditingNote(n.id)} className="text-sm cursor-text text-amber-900">{n.text}</p>}
+              <button onClick={() => handleDeleteNote(n.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+          ))}</div>
+        )}
       </div>
 
       {/* Today's Schedule */}
