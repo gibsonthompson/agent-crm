@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import EmailComposer from '../../components/EmailComposer'
-import { useAdminAuth } from '../../layout'
 import HelpModal, { HelpButton } from '../../components/HelpModal'
-import Link from 'next/link'
+import { useAdminAuth } from '../../layout'
 
 const STATUS_OPTIONS = [
   { value: 'new', label: 'New Lead', color: 'bg-blue-100 text-blue-700 border-blue-300' },
@@ -36,13 +35,11 @@ const SMS_TEMPLATES = [
   { label: 'Anniversary', text: "Hi {name}, happy home-iversary! Can you believe it's been a year since you closed on your home? Hope you're loving it. Let me know if you ever need anything!" },
 ]
 
-
 const HELP_SECTIONS = [
-  { title: 'Quick actions', body: 'Call, text, or email the client directly from the buttons at the top.' },
+  { title: 'Quick actions', body: 'Call, text, or email the client from the buttons at the top.' },
   { title: 'Pipeline stage', body: "Change the lead's stage with the status pills. Lost asks for a reason." },
-  { title: 'Lead details', body: 'Track lead type, budget range, preferred areas, lead source, and property interest.' },
-  { title: 'Scheduling', body: 'Set a date/time for showings or events. Makes the contact show up on Calendar.' },
-  { title: 'Linked transaction', body: 'When a contact is Under Contract, you can create or view the linked transaction for milestone tracking and commission.' },
+  { title: 'Lead details', body: 'Track lead type, budget, preferred areas, lead source, and property interest.' },
+  { title: 'Scheduling', body: 'Set a date/time for showings or events. Shows up on the Calendar page.' },
   { title: 'Remember to save', body: 'After editing, tap Save at the top right. Changes are not saved automatically.' },
 ]
 
@@ -66,16 +63,13 @@ export default function ContactDetailPage() {
   const [showSmsTemplates, setShowSmsTemplates] = useState(false)
   const [smsText, setSmsText] = useState('')
   const [showHelp, setShowHelp] = useState(false)
-  const [linkedTransaction, setLinkedTransaction] = useState(null)
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', service_type: '', message: '', status: 'new', notes: '', next_follow_up: '', scheduled_date: '', scheduled_time: '', address: '', assigned_to: '', lead_type: '', lead_source: '', budget_min: '', budget_max: '', preferred_areas: '' })
 
-  useEffect(() => { if (contactId && user) { fetchContact(); fetchOutreach(); fetchActivity(); fetchTransaction(); if (user.role === 'admin') fetchUsers() } }, [contactId, user])
+  useEffect(() => { if (contactId && user) { fetchContact(); fetchOutreach(); fetchActivity(); if (user.role === 'admin') fetchUsers() } }, [contactId, user])
 
   const fetchContact = async () => { try { const r = await fetch('/api/contact'); const res = await r.json(); if (res.data) { const f = res.data.find(s => s.id === contactId); if (f) { setContact(f); setFormData({ name: f.name||'', email: f.email||'', phone: f.phone||'', service_type: f.service_type||'', message: f.message||'', status: f.status||'new', notes: f.notes||'', next_follow_up: f.next_follow_up||'', scheduled_date: f.scheduled_date||'', scheduled_time: f.scheduled_time||'', address: f.address||'', assigned_to: f.assigned_to||'', lead_type: f.lead_type||'', lead_source: f.lead_source||'', budget_min: f.budget_min||'', budget_max: f.budget_max||'', preferred_areas: f.preferred_areas||'' }) } else setError('Contact not found') } } catch(e) { setError('Failed to load') } finally { setLoading(false) } }
   const fetchOutreach = async () => { try { const r = await fetch('/api/admin/outreach?contact_id='+contactId); const d = await r.json(); if (d.outreach) setOutreachLog(d.outreach) } catch(e) {} }
   const fetchActivity = async () => { try { const r = await fetch('/api/admin/activity?contact_id='+contactId); const d = await r.json(); if (d.activity) setActivityLog(d.activity) } catch(e) {} }
-  
-  const fetchTransaction = async () => { try { const r = await fetch('/api/admin/transactions'); const d = await r.json(); if (d.transactions) { const linked = d.transactions.find(t => t.contact_id === contactId); setLinkedTransaction(linked || null) } } catch(e) {} }
   const fetchUsers = async () => { try { const r = await fetch('/api/admin/users'); const d = await r.json(); if (d.users) setTeamUsers(d.users.filter(u => u.is_active)) } catch(e) {} }
 
   const handleSave = async () => { setSaving(true); setError(''); setSuccessMsg(''); try { const r = await fetch('/api/contact', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:contactId, status:formData.status, notes:formData.notes, next_follow_up:formData.next_follow_up||null, scheduled_date:formData.scheduled_date||null, scheduled_time:formData.scheduled_time||null, address:formData.address||null, assigned_to:formData.assigned_to||null, lead_type:formData.lead_type||null, lead_source:formData.lead_source||null, budget_min:formData.budget_min||null, budget_max:formData.budget_max||null, preferred_areas:formData.preferred_areas||null }) }); if (r.ok) { setSuccessMsg('Saved'); fetchContact(); fetchActivity(); setTimeout(()=>setSuccessMsg(''),3000) } else setError('Failed to save') } catch(e) { setError('Failed to save') } finally { setSaving(false) } }
@@ -112,8 +106,10 @@ export default function ContactDetailPage() {
         <Link href="/admin/contacts" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-[#1a2e44] mb-4"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>Back</Link>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0"><h1 className="text-xl sm:text-2xl font-bold text-[#1a2e44] truncate">{contact?.name}</h1><p className="text-sm text-gray-500">{contact?.service_type || 'No interest specified'} · {timeAgo(contact?.created_at)}</p></div>
-          <HelpButton onClick={() => setShowHelp(true)} />
-            <button onClick={handleSave} disabled={saving} className="px-3 sm:px-4 py-2 bg-[#1a2e44]" text-white text-sm font-medium rounded-xl hover:bg-[#0f1d2d] disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <HelpButton onClick={() => setShowHelp(true)} />
+            <button onClick={handleSave} disabled={saving} className="px-3 sm:px-4 py-2 bg-[#1a2e44] text-white text-sm font-medium rounded-xl hover:bg-[#0f1d2d] disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
+          </div>
         </div>
       </div>
 
@@ -130,29 +126,6 @@ export default function ContactDetailPage() {
 
       {/* Pipeline Stage */}
       <div className="mb-6 sm:mb-8"><p className="text-xs text-gray-500 mb-2">Pipeline Stage</p><div className="flex flex-wrap gap-2">{STATUS_OPTIONS.map((s) => <button key={s.value} onClick={() => handleStatusChange(s.value)} className={'px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 border ' + (formData.status === s.value ? s.color + ' ring-2 ring-offset-1 ring-gray-300' : 'bg-gray-50 text-gray-500 border-gray-200')}>{s.label}</button>)}</div></div>
-
-      
-      {/* Linked Transaction */}
-      {formData.status === 'under_contract' || formData.status === 'closed' ? (
-        <div className="mb-6 sm:mb-8">
-          {linkedTransaction ? (
-            <Link href="/admin/transactions" className="block bg-emerald-50 border border-emerald-200 rounded-xl p-4 hover:bg-emerald-100 transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-emerald-800">Linked Transaction</p>
-                  <p className="text-xs text-emerald-600">{linkedTransaction.property_address} · Net: ${Math.abs(parseFloat(linkedTransaction.net_commission) || 0).toLocaleString()}</p>
-                </div>
-                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </div>
-            </Link>
-          ) : (
-            <Link href={'/admin/transactions?new=' + contactId} className="block bg-[#1a2e44]/5 border border-[#1a2e44]/20 rounded-xl p-4 hover:bg-[#1a2e44]/10 transition-colors text-center">
-              <p className="text-sm font-medium text-[#1a2e44]">+ Create Transaction for this deal</p>
-              <p className="text-xs text-gray-500 mt-0.5">Track milestones, deadlines, and commission</p>
-            </Link>
-          )}
-        </div>
-      ) : null}
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
