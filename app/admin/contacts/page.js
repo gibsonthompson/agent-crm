@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminAuth } from '../layout'
-import HelpModal, { HelpButton } from '../components/HelpModal'
 
 const statuses = [
   { value: 'all', label: 'All' },
@@ -25,15 +24,6 @@ const LEAD_TYPES = [
   { value: 'renter', label: 'Renter' },
 ]
 
-const HELP_SECTIONS = [
-  { title: 'What is this page?', body: 'Your list of all leads and clients. Everyone who inquires through your website, gets added manually, or comes from any lead source shows up here.' },
-  { title: 'Status filters', body: 'Use the pill filters to show only leads in a specific stage — New Lead, Contacted, Showing, Offer Sent, Under Contract, Closed, or Lost. Counts update in real time.' },
-  { title: 'Lead type filter', body: 'Filter by buyer, seller, investor, or renter using the dropdown next to the sort options.' },
-  { title: 'Search', body: 'Type a name, phone number, email, or address to find a specific contact quickly.' },
-  { title: 'Tap a contact', body: "Tap any contact to open their detail page where you can call, text, email, change status, schedule a showing, and see the full activity history." },
-  { title: 'Board View', body: 'Tap Board View at the top right to switch to the Pipeline page where you can drag and drop contacts between stages.' },
-]
-
 export default function ContactsPage() {
   const { user } = useAdminAuth()
   const [contacts, setContacts] = useState([])
@@ -42,7 +32,6 @@ export default function ContactsPage() {
   const [typeFilter, setTypeFilter] = useState('all_types')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('newest')
-  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => { if (user) fetchContacts() }, [user])
 
@@ -83,7 +72,6 @@ export default function ContactsPage() {
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div><h2 className="text-lg sm:text-2xl font-bold text-[#1a2e44]">Contacts</h2><p className="text-gray-500 text-xs sm:text-sm">{contacts.length} total</p></div>
         <div className="flex items-center gap-2">
-          <HelpButton onClick={() => setShowHelp(true)} />
           <Link href="/admin/pipeline" className="px-3 py-1.5 text-xs font-medium text-[#1a2e44] bg-[#1a2e44]/10 rounded-lg hover:bg-[#1a2e44]/20 transition-colors">Board View</Link>
         </div>
       </div>
@@ -111,7 +99,7 @@ export default function ContactsPage() {
           <>
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Contact</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Interest</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>{user?.role === 'admin' && <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Assigned</th>}<th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Scheduled</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Added</th><th className="px-6 py-3"></th></tr></thead>
+                <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Contact</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Interest</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Scheduled</th><th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Added</th><th className="px-6 py-3"></th></tr></thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map((contact) => (
                     <tr key={contact.id} className={'hover:bg-gray-50 transition-colors ' + getUrgencyColor(contact)}>
@@ -119,7 +107,6 @@ export default function ContactsPage() {
                       <td className="px-6 py-4">{contact.lead_type && <span className={'inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ' + getLeadTypeBadge(contact.lead_type)}>{contact.lead_type}</span>}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{contact.service_type || '—'}</td>
                       <td className="px-6 py-4"><span className={'inline-flex px-2.5 py-1 rounded-full text-xs font-medium ' + getStatusBadge(contact.status)}>{getStatusLabel(contact.status)}</span></td>
-                      {user?.role === 'admin' && <td className="px-6 py-4 text-sm text-gray-500">{contact.assigned_user?.name || <span className="text-gray-300">Unassigned</span>}</td>}
                       <td className="px-6 py-4 text-sm text-gray-500">{contact.scheduled_date ? formatDate(contact.scheduled_date) : '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{timeAgo(contact.created_at)}</td>
                       <td className="px-6 py-4"><Link href={'/admin/contacts/' + contact.id} className="text-[#1a2e44] hover:text-[#0f1d2d] font-medium text-sm">View</Link></td>
@@ -146,8 +133,6 @@ export default function ContactsPage() {
           </>
         )}
       </div>
-
-      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Contacts Help" sections={HELP_SECTIONS} />
     </div>
   )
 }

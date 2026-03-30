@@ -148,9 +148,6 @@ export default function ContactDetailPage() {
               <div className="col-span-2 sm:col-span-1"><label className="block text-xs text-gray-500 mb-1.5">Preferred Areas</label><input type="text" value={formData.preferred_areas} onChange={(e) => setFormData(p => ({ ...p, preferred_areas: e.target.value }))} placeholder="Buckhead, Decatur, Midtown" style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
             </div>
             <div className="mt-3"><label className="block text-xs text-gray-500 mb-1.5">Property Address</label><input type="text" value={formData.address} onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="Current or target property address..." style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
-            {user?.role === 'admin' && (
-              <div className="mt-3"><label className="block text-xs text-gray-500 mb-1.5">Assigned To</label><select value={formData.assigned_to} onChange={(e) => setFormData(p => ({ ...p, assigned_to: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none bg-white"><option value="">Unassigned</option>{teamUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
-            )}
             {contact?.message && <div className="mt-3"><p className="text-xs text-gray-500 mb-1.5">Original Message</p><p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{contact.message}</p></div>}
           </div>
 
