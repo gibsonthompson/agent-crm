@@ -39,6 +39,7 @@ const HELP_SECTIONS = [
   { title: 'Quick actions', body: 'Call, text, or email the client from the buttons at the top.' },
   { title: 'Pipeline stage', body: "Change the lead's stage with the status pills. Lost asks for a reason." },
   { title: 'Lead details', body: 'Track lead type, budget, preferred areas, lead source, and property interest.' },
+  { title: 'Personal details', body: 'Add birthday for reminders, close date for homeiversary tracking, and relationship type.' },
   { title: 'Scheduling', body: 'Set a date/time for showings or events. Shows up on the Calendar page.' },
   { title: 'Remember to save', body: 'After editing, tap Save at the top right. Changes are not saved automatically.' },
 ]
@@ -51,7 +52,6 @@ export default function ContactDetailPage() {
   const [contact, setContact] = useState(null)
   const [outreachLog, setOutreachLog] = useState([])
   const [activityLog, setActivityLog] = useState([])
-  const [teamUsers, setTeamUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -63,16 +63,15 @@ export default function ContactDetailPage() {
   const [showSmsTemplates, setShowSmsTemplates] = useState(false)
   const [smsText, setSmsText] = useState('')
   const [showHelp, setShowHelp] = useState(false)
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', service_type: '', message: '', status: 'new', notes: '', next_follow_up: '', scheduled_date: '', scheduled_time: '', address: '', assigned_to: '', lead_type: '', lead_source: '', budget_min: '', budget_max: '', preferred_areas: '' })
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', service_type: '', message: '', status: 'new', notes: '', next_follow_up: '', scheduled_date: '', scheduled_time: '', address: '', lead_type: '', lead_source: '', budget_min: '', budget_max: '', preferred_areas: '', birthday: '', close_date: '', relationship: '' })
 
-  useEffect(() => { if (contactId && user) { fetchContact(); fetchOutreach(); fetchActivity(); if (user.role === 'admin') fetchUsers() } }, [contactId, user])
+  useEffect(() => { if (contactId && user) { fetchContact(); fetchOutreach(); fetchActivity() } }, [contactId, user])
 
-  const fetchContact = async () => { try { const r = await fetch('/api/contact'); const res = await r.json(); if (res.data) { const f = res.data.find(s => s.id === contactId); if (f) { setContact(f); setFormData({ name: f.name||'', email: f.email||'', phone: f.phone||'', service_type: f.service_type||'', message: f.message||'', status: f.status||'new', notes: f.notes||'', next_follow_up: f.next_follow_up||'', scheduled_date: f.scheduled_date||'', scheduled_time: f.scheduled_time||'', address: f.address||'', assigned_to: f.assigned_to||'', lead_type: f.lead_type||'', lead_source: f.lead_source||'', budget_min: f.budget_min||'', budget_max: f.budget_max||'', preferred_areas: f.preferred_areas||'' }) } else setError('Contact not found') } } catch(e) { setError('Failed to load') } finally { setLoading(false) } }
+  const fetchContact = async () => { try { const r = await fetch('/api/contact'); const res = await r.json(); if (res.data) { const f = res.data.find(s => s.id === contactId); if (f) { setContact(f); setFormData({ name: f.name||'', email: f.email||'', phone: f.phone||'', service_type: f.service_type||'', message: f.message||'', status: f.status||'new', notes: f.notes||'', next_follow_up: f.next_follow_up||'', scheduled_date: f.scheduled_date||'', scheduled_time: f.scheduled_time||'', address: f.address||'', lead_type: f.lead_type||'', lead_source: f.lead_source||'', budget_min: f.budget_min||'', budget_max: f.budget_max||'', preferred_areas: f.preferred_areas||'', birthday: f.birthday||'', close_date: f.close_date||'', relationship: f.relationship||'' }) } else setError('Contact not found') } } catch(e) { setError('Failed to load') } finally { setLoading(false) } }
   const fetchOutreach = async () => { try { const r = await fetch('/api/admin/outreach?contact_id='+contactId); const d = await r.json(); if (d.outreach) setOutreachLog(d.outreach) } catch(e) {} }
   const fetchActivity = async () => { try { const r = await fetch('/api/admin/activity?contact_id='+contactId); const d = await r.json(); if (d.activity) setActivityLog(d.activity) } catch(e) {} }
-  const fetchUsers = async () => { try { const r = await fetch('/api/admin/users'); const d = await r.json(); if (d.users) setTeamUsers(d.users.filter(u => u.is_active)) } catch(e) {} }
 
-  const handleSave = async () => { setSaving(true); setError(''); setSuccessMsg(''); try { const r = await fetch('/api/contact', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:contactId, status:formData.status, notes:formData.notes, next_follow_up:formData.next_follow_up||null, scheduled_date:formData.scheduled_date||null, scheduled_time:formData.scheduled_time||null, address:formData.address||null, assigned_to:formData.assigned_to||null, lead_type:formData.lead_type||null, lead_source:formData.lead_source||null, budget_min:formData.budget_min||null, budget_max:formData.budget_max||null, preferred_areas:formData.preferred_areas||null }) }); if (r.ok) { setSuccessMsg('Saved'); fetchContact(); fetchActivity(); setTimeout(()=>setSuccessMsg(''),3000) } else setError('Failed to save') } catch(e) { setError('Failed to save') } finally { setSaving(false) } }
+  const handleSave = async () => { setSaving(true); setError(''); setSuccessMsg(''); try { const r = await fetch('/api/contact', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id:contactId, status:formData.status, notes:formData.notes, next_follow_up:formData.next_follow_up||null, scheduled_date:formData.scheduled_date||null, scheduled_time:formData.scheduled_time||null, address:formData.address||null, lead_type:formData.lead_type||null, lead_source:formData.lead_source||null, budget_min:formData.budget_min||null, budget_max:formData.budget_max||null, preferred_areas:formData.preferred_areas||null, birthday:formData.birthday||null, close_date:formData.close_date||null, relationship:formData.relationship||null }) }); if (r.ok) { setSuccessMsg('Saved'); fetchContact(); fetchActivity(); setTimeout(()=>setSuccessMsg(''),3000) } else setError('Failed to save') } catch(e) { setError('Failed to save') } finally { setSaving(false) } }
 
   const handleStatusChange = async (newStatus) => {
     if (newStatus === 'lost') { setShowCloseModal(true); return }
@@ -149,6 +148,16 @@ export default function ContactDetailPage() {
             </div>
             <div className="mt-3"><label className="block text-xs text-gray-500 mb-1.5">Property Address</label><input type="text" value={formData.address} onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="Current or target property address..." style={{ fontSize: '16px' }} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
             {contact?.message && <div className="mt-3"><p className="text-xs text-gray-500 mb-1.5">Original Message</p><p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{contact.message}</p></div>}
+          </div>
+
+          {/* Personal Details */}
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+            <h3 className="font-semibold text-gray-800 mb-4 text-sm sm:text-base">Personal Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div><label className="block text-xs text-gray-500 mb-1.5">Birthday</label><input type="date" value={formData.birthday} onChange={(e) => setFormData(p => ({ ...p, birthday: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /></div>
+              <div><label className="block text-xs text-gray-500 mb-1.5">Close Date</label><input type="date" value={formData.close_date} onChange={(e) => setFormData(p => ({ ...p, close_date: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none" /><p className="text-[10px] text-gray-400 mt-1">For homeiversary reminders</p></div>
+              <div><label className="block text-xs text-gray-500 mb-1.5">Relationship</label><select value={formData.relationship} onChange={(e) => setFormData(p => ({ ...p, relationship: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2e44] outline-none bg-white"><option value="">Select...</option><option value="Past Client">Past Client</option><option value="Active Client">Active Client</option><option value="Family">Family</option><option value="Friend">Friend</option><option value="Vendor">Vendor</option><option value="Lender">Lender</option><option value="Colleague">Colleague</option><option value="Other">Other</option></select></div>
+            </div>
           </div>
 
           {/* Scheduling */}
